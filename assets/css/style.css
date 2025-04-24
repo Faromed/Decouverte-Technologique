@@ -1,0 +1,14 @@
+/* Exemple de style personnalisé */
+body {
+    padding-top: 70px; /* Pour que le contenu ne soit pas caché par la navbar fixe */
+}
+
+.card {
+    transition: transform 0.3s ease-in-out; /* Petite animation au survol */
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Soulève légèrement la carte */
+}
+
+/* Vous pouvez ajouter d'autres styles ici */
