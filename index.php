@@ -93,119 +93,190 @@ try {
 }
 ?>
 
-<h1>Mes Découvertes Techniques</h1>
+<div class="content-section">
+    <div class="section-header d-flex justify-content-between align-items-center mb-4">
+        <h1 class="section-title" data-aos="fade-right">
+            <i class="fas fa-flask me-2"></i>Mes Découvertes Techniques
+        </h1>
+        <div class="control-buttons" data-aos="fade-left">
+            <button id="viewToggle" class="btn btn-outline-primary">
+                <i class="fas fa-th-list"></i>
+            </button>
+            <a href="ajouter_decouverte.php" class="btn btn-primary ms-2">
+                <i class="fas fa-plus-circle me-1"></i> Ajouter
+            </a>
+        </div>
+    </div>
 
-<?php
-// Afficher les messages d'état (succès/erreur) après redirection depuis les actions
-if (isset($_GET['status'])) {
-     if ($_GET['status'] == 'success') {
-
-         $message = $_GET['message'] ?? 'Opération réussie !';
-
-          echo '<div class="alert alert-success alert-dismissible fade show" role="alert">' . htmlspecialchars($message) . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-
-         } elseif ($_GET['status'] == 'error') {
-    $message = $_GET['message'] ?? 'Une erreur est survenue.';
-    echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">Erreur : ' . htmlspecialchars($message) . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-  }
-}
-?>
-
-<?php if ($filter_tag_id): // Afficher le filtre actif ?>
     <?php
-    $filtered_tag_name = 'Tag inconnu';
-    try {
-        $stmt_tag = $pdo->prepare("SELECT nom FROM tags WHERE id = ?");
-        $stmt_tag->execute([$filter_tag_id]);
-        $tag_info = $stmt_tag->fetchColumn();
-        if ($tag_info) {
-            $filtered_tag_name = htmlspecialchars($tag_info);
+    // Afficher les messages d'état (succès/erreur) après redirection depuis les actions
+    if (isset($_GET['status'])) {
+        if ($_GET['status'] == 'success') {
+            $message = $_GET['message'] ?? 'Opération réussie !';
+            echo '<div class="alert alert-success alert-dismissible fade show custom-alert" role="alert" data-aos="fade-in">
+                <i class="fas fa-check-circle me-2"></i>' . htmlspecialchars($message) . 
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>';
+        } elseif ($_GET['status'] == 'error') {
+            $message = $_GET['message'] ?? 'Une erreur est survenue.';
+            echo '<div class="alert alert-danger alert-dismissible fade show custom-alert" role="alert" data-aos="fade-in">
+                <i class="fas fa-exclamation-circle me-2"></i>Erreur : ' . htmlspecialchars($message) . 
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>';
         }
-    } catch(PDOException $e) {
-         error_log('Erreur chargement nom tag filtre : ' . $e->getMessage());
     }
     ?>
-    <div class="alert alert-secondary d-flex justify-content-between align-items-center" role="alert">
-        Filtré par Tag : <span class="badge bg-dark ms-2"><i class="fas fa-hashtag me-1"></i><?= $filtered_tag_name ?></span>
-        <a href="index.php" class="btn-close" aria-label="Enlever le filtre"></a>
-    </div>
-<?php endif; ?>
 
-
-<?php if (empty($decouvertes)): ?>
-  <div class="alert alert-info" role="alert">
-    Aucune découverte enregistrée pour le moment<?php if($filter_tag_id) echo ' pour ce tag' ; ?>. <a href="ajouter_decouverte.php">Ajoutez-en une !</a>
-  </div>
-<?php else: ?>
-  <div class="row row-cols-1 row-cols-md-2 g-4">
-    <?php foreach ($decouvertes as $decouverte): ?>
-      <div class="col">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title"><?= htmlspecialchars($decouverte['titre']) ?></h5>
-            <h6 class="card-subtitle mb-2 text-muted">
-              <i class="fas fa-tag"></i> <?= htmlspecialchars($decouverte['categorie_nom']) ?>
-            </h6>
-            <p class="card-text"><?= nl2br(htmlspecialchars($decouverte['description'])) ?></p>
-
-            <?php if (!empty($decouverte['liens_utiles'])): ?>
-              <h6 class="mt-3">Liens Utiles :</h6>
-              <ul>
-                <?php
-                $links = preg_split("/[\r\n,]+/", $decouverte['liens_utiles'], -1, PREG_SPLIT_NO_EMPTY);
-                foreach($links as $link) {
-                  $link = trim($link);
-                  if (!empty($link)) {
-                    if (!preg_match("~^(?:f|ht)tps?://~i", $link)) {
-                      $link = "http://" . $link;
-                    }
-                    echo '<li><a href="' . htmlspecialchars($link) . '" target="_blank" rel="noopener noreferrer"><i class="fas fa-link me-1"></i>' . htmlspecialchars($link) . '</a></li>';
-                  }
-                }
-                ?>
-              </ul>
-            <?php endif; ?>
-
-            <?php if (!empty($decouverte['tags_noms'])): ?>
-              <div class="mt-3">
-                <?php
-                $tags_noms_array = explode(', ', $decouverte['tags_noms']);
-                $tags_ids_array = explode(',', $decouverte['tags_ids']);
-                                // Assurez-vous que les deux tableaux ont la même taille avant de combiner (au cas où)
-                                if (count($tags_noms_array) === count($tags_ids_array)) {
-                                    $tags_combined = array_combine($tags_ids_array, $tags_noms_array);
-                                } else {
-                                    // Fallback si les IDs/Noms ne correspondent pas (ne devrait pas arriver avec GROUP_CONCAT)
-                                    $tags_combined = array_flip($tags_noms_array); // Utiliser seulement les noms
-                                }
-
-
-                foreach($tags_combined as $tag_id => $tag_nom) {
-                  if (!empty($tag_nom)) {
-                                        // Le lien filtre par tag_id
-                    echo '<a href="index.php?tag_id=' . htmlspecialchars($tag_id) . '" class="badge bg-primary me-1 text-decoration-none"><i class="fas fa-hashtag me-1"></i>' . htmlspecialchars($tag_nom) . '</a>';
-                  }
-                }
-                ?>
-              </div>
-            <?php endif; ?>
-
-          </div>
-          <div class="card-footer d-flex justify-content-between align-items-center">
-            <small class="text-muted">Découvert le : <?= date('d/m/Y H:i', strtotime($decouverte['date_decouverte'])) ?></small>
+    <?php if ($filter_tag_id): // Afficher le filtre actif ?>
+        <?php
+        $filtered_tag_name = 'Tag inconnu';
+        try {
+            $stmt_tag = $pdo->prepare("SELECT nom FROM tags WHERE id = ?");
+            $stmt_tag->execute([$filter_tag_id]);
+            $tag_info = $stmt_tag->fetchColumn();
+            if ($tag_info) {
+                $filtered_tag_name = htmlspecialchars($tag_info);
+            }
+        } catch(PDOException $e) {
+            error_log('Erreur chargement nom tag filtre : ' . $e->getMessage());
+        }
+        ?>
+        <div class="filter-badge alert alert-secondary d-flex justify-content-between align-items-center mb-4" role="alert" data-aos="fade-up">
             <div>
-              <a href="editer_decouverte.php?id=<?= $decouverte['id'] ?>" class="btn btn-sm btn-outline-primary me-1" title="Modifier"><i class="fas fa-edit"></i></a>
-              <form action="supprimer_decouverte.php" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette découverte ?');">
-                <input type="hidden" name="id" value="<?= $decouverte['id'] ?>">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
-              </form>
+                <i class="fas fa-filter me-2"></i>
+                Filtré par Tag : <span class="badge bg-dark ms-2"><i class="fas fa-hashtag me-1"></i><?= $filtered_tag_name ?></span>
             </div>
-          </div>
+            <a href="index.php" class="btn btn-sm btn-outline-dark" aria-label="Enlever le filtre">
+                <i class="fas fa-times"></i> Retirer le filtre
+            </a>
         </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-<?php endif; ?>
+    <?php endif; ?>
+
+    <?php if (empty($decouvertes)): ?>
+    <div class="empty-state text-center py-5" data-aos="fade-up">
+        <div class="empty-icon mb-4">
+            <i class="fas fa-lightbulb"></i>
+        </div>
+        <h3>Aucune découverte enregistrée<?php if($filter_tag_id) echo ' pour ce tag' ; ?></h3>
+        <p class="text-muted">Commencez à enregistrer vos découvertes techniques dès maintenant</p>
+        <a href="ajouter_decouverte.php" class="btn btn-primary mt-3">
+            <i class="fas fa-plus-circle me-2"></i>Ajouter une découverte
+        </a>
+    </div>
+    <?php else: ?>
+    <div class="row row-cols-1 row-cols-md-2 g-4" id="discoveries-container">
+        <?php foreach ($decouvertes as $index => $decouverte): ?>
+        <div class="col discovery-item" data-aos="fade-up" data-aos-delay="<?= $index * 100 ?>">
+            <div class="card h-100 discovery-card">
+                <div class="card-header bg-transparent">
+                    <span class="category-badge">
+                        <i class="fas fa-tag me-1"></i><?= htmlspecialchars($decouverte['categorie_nom']) ?>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <?= htmlspecialchars($decouverte['titre']) ?>
+                    </h5>
+                    <div class="card-text content-expandable">
+                        <?= nl2br(htmlspecialchars($decouverte['description'])) ?>
+                    </div>
+
+                    <?php if (!empty($decouverte['liens_utiles'])): ?>
+                    <div class="links-section mt-3">
+                        <h6 class="links-title"><i class="fas fa-external-link-alt me-2"></i>Liens Utiles</h6>
+                        <ul class="links-list">
+                            <?php
+                            $links = preg_split("/[\r\n,]+/", $decouverte['liens_utiles'], -1, PREG_SPLIT_NO_EMPTY);
+                            foreach($links as $link) {
+                                $link = trim($link);
+                                if (!empty($link)) {
+                                    if (!preg_match("~^(?:f|ht)tps?://~i", $link)) {
+                                        $link = "http://" . $link;
+                                    }
+                                    $displayLink = preg_replace('~^https?://~', '', $link);
+                                    echo '<li><a href="' . htmlspecialchars($link) . '" target="_blank" rel="noopener noreferrer" class="link-hover-effect"><i class="fas fa-link me-1"></i>' . htmlspecialchars($displayLink) . '</a></li>';
+                                }
+                            }
+                            ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($decouverte['tags_noms'])): ?>
+                    <div class="tags-container mt-3">
+                        <?php
+                        $tags_noms_array = explode(', ', $decouverte['tags_noms']);
+                        $tags_ids_array = explode(',', $decouverte['tags_ids']);
+                        
+                        // Assurez-vous que les deux tableaux ont la même taille avant de combiner
+                        if (count($tags_noms_array) === count($tags_ids_array)) {
+                            $tags_combined = array_combine($tags_ids_array, $tags_noms_array);
+                        } else {
+                            $tags_combined = array_flip($tags_noms_array);
+                        }
+
+                        foreach($tags_combined as $tag_id => $tag_nom) {
+                            if (!empty($tag_nom)) {
+                                echo '<a href="index.php?tag_id=' . htmlspecialchars($tag_id) . '" 
+                                    class="tag-badge"><i class="fas fa-hashtag me-1"></i>' . 
+                                    htmlspecialchars($tag_nom) . '</a>';
+                            }
+                        }
+                        ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div class="date-info">
+                        <i class="far fa-calendar-alt me-1"></i>
+                        <?= date('d/m/Y', strtotime($decouverte['date_decouverte'])) ?>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="editer_decouverte.php?id=<?= $decouverte['id'] ?>" 
+                           class="btn btn-sm btn-outline-primary me-1" 
+                           data-bs-toggle="tooltip" 
+                           title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-danger delete-btn" 
+                                data-id="<?= $decouverte['id'] ?>" 
+                                data-title="<?= htmlspecialchars($decouverte['titre']) ?>"
+                                data-bs-toggle="tooltip" 
+                                title="Supprimer">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<!-- Modal de confirmation pour la suppression -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer la découverte "<span id="deleteItemTitle"></span>" ?</p>
+                <p class="text-danger"><small>Cette action est irréversible.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" action="supprimer_decouverte.php" method="POST">
+                    <input type="hidden" name="id" id="deleteItemId">
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 // Inclure le pied de page HTML
